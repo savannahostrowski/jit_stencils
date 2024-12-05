@@ -1,4 +1,4 @@
-name: JIT Stencil Aggregation
+name: Gennrate JIT stencils
 
 on:
     pull_request:
