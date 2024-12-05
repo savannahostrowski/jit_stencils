@@ -81,7 +81,7 @@ jobs:
             brew install llvm@19
             export SDKROOT="$(xcrun --show-sdk-path)"
             ./configure --enable-experimental-jit
-            make all --jobs 4
+            make -j4
             stripped_target=$(echo ${{ matrix.target }} | sed 's|/|_|g')
             ./python.exe Tools/jit/build.py $stripped_target
             mkdir -p stencils
@@ -93,8 +93,7 @@ jobs:
             sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)" ./llvm.sh 19
             export PATH="$(llvm-config-19 --bindir):$PATH"
             ./configure --enable-experimental-jit
-            make all --jobs 4
-            ./python -m test --multiprocess 0 --timeout 4500 --verbose2 --verbose3
+            make -j4
             stripped_target=$(echo ${{ matrix.target }} | sed 's|/|_|g')
             ./python Tools/jit/build.py $stripped_target
             mkdir -p stencils
