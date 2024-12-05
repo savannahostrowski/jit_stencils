@@ -66,6 +66,7 @@ jobs:
         with:
           python-version: '3.11'
       - name: Install deps and build CPython (Windows)
+        if: runner.os == 'Windows'
         run: |
             choco install llvm --allow-downgrade --no-progress --version 19.1.0
             ./PCbuild/build.bat --experimental-jit -p ${{ matrix.architecture }}
@@ -75,6 +76,7 @@ jobs:
             cp cpython/jit_stencils.h stencils/jit_stencils_${{ matrix.target }}.h
 
       - name: Install deps and build CPython (macOS)
+        if: runner.os == 'macOS'
         run: |
             brew update
             find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' -delete
@@ -88,6 +90,7 @@ jobs:
             cp cpython/jit_stencils.h stencils/jit_stencils_${{ matrix.target }}.h
 
       - name: Install deps and build CPython (Linux)
+        if: runner.os == 'Linux'
         run: |
             sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)" ./llvm.sh 19
             export PATH="$(llvm-config-19 --bindir):$PATH"
