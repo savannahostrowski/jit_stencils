@@ -1,4 +1,4 @@
-name: Gennrate JIT stencils
+name: Generate JIT stencils
 
 on:
     pull_request:
