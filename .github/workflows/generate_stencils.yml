@@ -114,25 +114,9 @@ jobs:
         with:
           name: stencils
 
-      - name: Commit and push stencils
+      - name: Push commit
         run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git checkout -b add-jit-stencils
-          git add jit_stencils_*.h
-          git commit -m "Add aggregated JIT stencils"
-          git push origin add-jit-stencils
-
-      - name: Create Pull Request
-        uses: actions/github-script@v6
-        with:
-          script: |
-            const { data: pr } = await github.rest.pulls.create({
-              owner: context.repo.owner,
-              repo: context.repo.repo,
-              head: 'add-jit-stencils',
-              base: 'main',
-              title: 'Add aggregated JIT stencils',
-              body: 'This PR includes the aggregated JIT stencil files from all platforms.',
-            });
-            core.info(`Pull request created: ${pr.html_url}`);
+          git config --global use.name 'Savannah Ostrowski'
+          git config --global user.email 'savannahostrowski@users.noreply.github.com'
+          git commit -am "Update stencils"
+          git push
