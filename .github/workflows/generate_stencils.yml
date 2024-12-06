@@ -31,9 +31,6 @@ jobs:
           - aarch64-apple-darwin/clang
           - x86_64-unknown-linux-gnu/gcc
           - aarch64-unknown-linux-gnu/gcc
-        debug:
-          - true
-          - false
         llvm:
           - 19
         include:
@@ -78,7 +75,7 @@ jobs:
           find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' -delete
           brew install llvm@${{ matrix.llvm }}
           export SDKROOT="$(xcrun --show-sdk-path)"
-          ./configure --enable-experimental-jit ${{ matrix.debug && '--with-pydebug' || '' }}
+          ./configure --enable-experimental-jit
           make all --jobs 4
           ls
           mkdir ../stencils
@@ -90,7 +87,7 @@ jobs:
         run: |
           sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)" ./llvm.sh ${{ matrix.llvm }}
           export PATH="$(llvm-config-${{ matrix.llvm }} --bindir):$PATH"
-          ./configure --enable-experimental-jit ${{ matrix.debug && '--with-pydebug' || '' }}
+          ./configure --enable-experimental-jit
           make all --jobs 4
           ls
           mkdir ../stencils
@@ -122,7 +119,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git checkout -b add-jit-stencils
-          git add stencils
+          git add jit_stencils_*.h
           git commit -m "Add aggregated JIT stencils"
           git push origin add-jit-stencils
 
