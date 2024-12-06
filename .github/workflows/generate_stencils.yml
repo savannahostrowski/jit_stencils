@@ -67,53 +67,29 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Native Windows
-        if: runner.os == 'Windows' && matrix.architecture != 'ARM64'
+      - name: Build and collect stencils
         run: |
-          choco install llvm --allow-downgrade --no-progress --version ${{ matrix.llvm }}.1.0
-          ./PCbuild/build.bat --experimental-jit ${{ matrix.debug && '-d' || '' }} -p ${{ matrix.architecture }}
-          ls
-          mkdir ../stencils
-          cp jit_stencils.h ../stencils/jit_stencils_${{ matrix.target }}.h
-
-      # No tests (yet):
-      - name: Emulated Windows
-        if: runner.os == 'Windows' && matrix.architecture == 'ARM64'
-        run: |
-          choco install llvm --allow-downgrade --no-progress --version ${{ matrix.llvm }}.1.0
-          ./PCbuild/build.bat --experimental-jit ${{ matrix.debug && '-d' || '' }} -p ${{ matrix.architecture }}
-          ls
-          mkdir ../stencils
-          cp jit_stencils.h ../stencils/jit_stencils_${{ matrix.target }}.h
-
-        # The `find` line is required as a result of https://github.com/actions/runner-images/issues/9966.
-        # This is a bug in the macOS runner image where the pre-installed Python is installed in the same
-        # directory as the Homebrew Python, which causes the build to fail for macos-13. This line removes
-        # the symlink to the pre-installed Python so that the Homebrew Python is used instead.
-      - name: Native macOS
-        if: runner.os == 'macOS'
-        run: |
-          brew update
-          find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' -delete
-          brew install llvm@${{ matrix.llvm }}
-          export SDKROOT="$(xcrun --show-sdk-path)"
-          ./configure --enable-experimental-jit ${{ matrix.debug && '--with-pydebug' || '' }}
-          make all --jobs 4
-          ls
-          mkdir ../stencils
-          cp jit_stencils.h ../stencils/jit_stencils_${{ matrix.target }}.h
-
-      - name: Native Linux
-        # Forks don't have access to our paid AArch64 runners. Skip those:
-        if: runner.os == 'Linux' && (matrix.architecture == 'x86_64' || github.repository_owner == 'python')
-        run: |
-          sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)" ./llvm.sh ${{ matrix.llvm }}
-          export PATH="$(llvm-config-${{ matrix.llvm }} --bindir):$PATH"
-          ./configure --enable-experimental-jit ${{ matrix.debug && '--with-pydebug' || '' }}
-          make all --jobs 4
-          ls
-          mkdir ../stencils
-          cp jit_stencils.h ../stencils/jit_stencils_${{ matrix.target }}.h
+            mkdir -p ../stencils
+            stripped_target=$(echo "${{ matrix.target }}" | sed 's|/|_|g')
+            if [[ $RUNNER_OS == "Windows" ]]; then
+              choco install llvm --allow-downgrade --no-progress --version ${{ matrix.llvm }}.1.0
+              ./PCbuild/build.bat --experimental-jit ${{ matrix.debug && '-d' || '' }} -p ${{ matrix.architecture }}
+              cp jit_stencils.h ../stencils/jit_stencils_${stripped_target}.h
+            elif [[ $RUNNER_OS == "macOS" ]]; then
+              brew update
+              find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' -delete
+              brew install llvm@${{ matrix.llvm }}
+              export SDKROOT="$(xcrun --show-sdk-path)"
+              ./configure --enable-experimental-jit ${{ matrix.debug && '--with-pydebug' || '' }}
+              make all --jobs 4
+              cp jit_stencils.h ../stencils/jit_stencils_${stripped_target}.h
+            else
+              sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)" ./llvm.sh ${{ matrix.llvm }}
+              export PATH="$(llvm-config-${{ matrix.llvm }} --bindir):$PATH"
+              ./configure --enable-experimental-jit ${{ matrix.debug && '--with-pydebug' || '' }}
+              make all --jobs 4
+              cp jit_stencils.h ../stencils/jit_stencils_${stripped_target}.h
+            fi
   aggregate-and-push:
     name: Aggregate and Push Stencils
     needs: jit
