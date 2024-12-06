@@ -74,7 +74,7 @@ jobs:
           ./PCbuild/build.bat --experimental-jit ${{ matrix.debug && '-d' || '' }} -p ${{ matrix.architecture }}
           ls
           mkdir ..\stencils
-          ls
+          dir /s jit_stencils.h
           cp jit_stencils.h ..\stencils\jit_stencils_${stripped_target}.h
 
 
