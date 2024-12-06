@@ -1,26 +1,49 @@
-name: Generate JIT stencils
-
+name: JIT
 on:
-    pull_request:
-        branches:
-            - main
-        paths:
-            - '!stencils/**'
-    push:
-        branches:
-            - main
+  pull_request:
+    paths:
+      - '**jit**'
+      - 'Python/bytecodes.c'
+      - 'Python/optimizer*.c'
+      - '!Python/perf_jit_trampoline.c'
+      - '!**/*.md'
+      - '!**/*.ini'
+  push:
+    paths:
+      - '**jit**'
+      - 'Python/bytecodes.c'
+      - 'Python/optimizer*.c'
+      - '!Python/perf_jit_trampoline.c'
+      - '!**/*.md'
+      - '!**/*.ini'
+  workflow_dispatch:
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: ${{ github.workflow }}-${{ github.head_ref || github.run_id }}
   cancel-in-progress: true
 
 jobs:
-  build:
-    name: Build CPython
+  interpreter:
+    name: Interpreter (Debug)
     runs-on: ubuntu-24.04
+    timeout-minutes: 90
+    steps:
+      - uses: actions/checkout@v4
+      - name: Build tier two interpreter
+        run: |
+          ./configure --enable-experimental-jit=interpreter --with-pydebug
+          make all --jobs 4
+      - name: Test tier two interpreter
+        run: |
+          ./python -m test --multiprocess 0 --timeout 4500 --verbose2 --verbose3
+  jit:
+    name: ${{ matrix.target }} (${{ matrix.debug && 'Debug' || 'Release' }})
+    needs: interpreter
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 90
     strategy:
       fail-fast: false
       matrix:
@@ -32,6 +55,11 @@ jobs:
           - aarch64-apple-darwin/clang
           - x86_64-unknown-linux-gnu/gcc
           - aarch64-unknown-linux-gnu/gcc
+        debug:
+          - true
+          - false
+        llvm:
+          - 19
         include:
           - target: i686-pc-windows-msvc/msvc
             architecture: Win32
@@ -53,63 +81,58 @@ jobs:
             runner: ubuntu-24.04
           - target: aarch64-unknown-linux-gnu/gcc
             architecture: aarch64
-            runner: ubuntu-24.04
+            # Forks don't have access to our paid AArch64 runners. These jobs are skipped below:
+            runner: ${{ github.repository_owner == 'python' && 'ubuntu-24.04-aarch64' || 'ubuntu-24.04' }}
     steps:
-      - name: Checkout CPython repository
-        uses: actions/checkout@v4
-        with:
-          repository: python/cpython
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install deps and build CPython (Windows)
-        if: runner.os == 'Windows'
-        run: |
-            choco install llvm --allow-downgrade --no-progress --version 19.1.0
-            ./PCbuild/build.bat --experimental-jit -p ${{ matrix.architecture }}
-            stripped_target=$(echo ${{ matrix.target }} | cut -d'/' -f1)
-            ./python Tools/jit/build.py $stripped_target
-            mkdir -p stencils
-            cp cpython/jit_stencils.h stencils/jit_stencils_${{ matrix.target }}.h
 
-      - name: Install deps and build CPython (macOS)
+      - name: Native Windows
+        if: runner.os == 'Windows' && matrix.architecture != 'ARM64'
+        run: |
+          choco install llvm --allow-downgrade --no-progress --version ${{ matrix.llvm }}.1.0
+          ./PCbuild/build.bat --experimental-jit ${{ matrix.debug && '-d' || '' }} -p ${{ matrix.architecture }}
+          cp cpython/jit_stencils.h stencils/jit_stencils_${{ matrix.target }}.h
+
+      # No tests (yet):
+      - name: Emulated Windows
+        if: runner.os == 'Windows' && matrix.architecture == 'ARM64'
+        run: |
+          choco install llvm --allow-downgrade --no-progress --version ${{ matrix.llvm }}.1.0
+          ./PCbuild/build.bat --experimental-jit ${{ matrix.debug && '-d' || '' }} -p ${{ matrix.architecture }}
+          cp cpython/jit_stencils.h stencils/jit_stencils_${{ matrix.target }}.h
+
+        # The `find` line is required as a result of https://github.com/actions/runner-images/issues/9966.
+        # This is a bug in the macOS runner image where the pre-installed Python is installed in the same
+        # directory as the Homebrew Python, which causes the build to fail for macos-13. This line removes
+        # the symlink to the pre-installed Python so that the Homebrew Python is used instead.
+      - name: Native macOS
         if: runner.os == 'macOS'
         run: |
-            brew update
-            find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' -delete
-            brew install llvm@19
-            export SDKROOT="$(xcrun --show-sdk-path)"
-            ./configure --enable-experimental-jit
-            make -j4
-            stripped_target=$(echo ${{ matrix.target }} | cut -d'/' -f1)
-            ./python.exe Tools/jit/build.py $stripped_target
-            mkdir -p stencils
-            cp cpython/jit_stencils.h stencils/jit_stencils_${{ matrix.target }}.h
+          brew update
+          find /usr/local/bin -lname '*/Library/Frameworks/Python.framework/*' -delete
+          brew install llvm@${{ matrix.llvm }}
+          export SDKROOT="$(xcrun --show-sdk-path)"
+          ./configure --enable-experimental-jit ${{ matrix.debug && '--with-pydebug' || '' }}
+          make all --jobs 4
+          cp cpython/jit_stencils.h stencils/jit_stencils_${{ matrix.target }}.h
 
-      - name: Install deps and build CPython (Linux)
-        if: runner.os == 'Linux'
+      - name: Native Linux
+        # Forks don't have access to our paid AArch64 runners. Skip those:
+        if: runner.os == 'Linux' && (matrix.architecture == 'x86_64' || github.repository_owner == 'python')
         run: |
-            sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)" ./llvm.sh 19
-            export PATH="$(llvm-config-19 --bindir):$PATH"
-            ./configure --enable-experimental-jit
-            make -j4
-            stripped_target=$(echo ${{ matrix.target }} | cut -d'/' -f1)
-            ./python Tools/jit/build.py $stripped_target
-            mkdir -p stencils
-            cp cpython/jit_stencils.h stencils/jit_stencils_${{ matrix.target }}.h
+          sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)" ./llvm.sh ${{ matrix.llvm }}
+          export PATH="$(llvm-config-${{ matrix.llvm }} --bindir):$PATH"
+          ./configure --enable-experimental-jit ${{ matrix.debug && '--with-pydebug' || '' }}
+          make all --jobs 4
+          cp cpython/jit_stencils.h stencils/jit_stencils_${{ matrix.target }}.h
+      - name: Commit back to GitHub
+        run: |
+            git config --global user.name "github-actions[bot]"
+            git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-  push-to-repo:
-    name: Push to repository
-    runs-on: ubuntu-24.04
-    needs: build
-    steps:
-      - name: Checkout repository
-        uses: actions/checkout@v4
-      - name: Commit and push changes
-        run: |
-            git config --global user.email "GitHub Actions < [email protected]>"
-            git config --global user.name "GitHub Actions"
-            git add stencils
-            git commit -m "Update JIT stencils"
+            git add -A
+            git commit -m "Updating generated stencils for ${{ matrix.target }}"
             git push
