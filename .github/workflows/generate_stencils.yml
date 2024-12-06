@@ -1,21 +1,11 @@
 name: JIT
 on:
   pull_request:
-    paths:
-      - '**jit**'
-      - 'Python/bytecodes.c'
-      - 'Python/optimizer*.c'
-      - '!Python/perf_jit_trampoline.c'
-      - '!**/*.md'
-      - '!**/*.ini'
+    branches:
+        - main
   push:
-    paths:
-      - '**jit**'
-      - 'Python/bytecodes.c'
-      - 'Python/optimizer*.c'
-      - '!Python/perf_jit_trampoline.c'
-      - '!**/*.md'
-      - '!**/*.ini'
+    branches:
+        - main
   workflow_dispatch:
 
 permissions:
@@ -85,6 +75,8 @@ jobs:
             runner: ${{ github.repository_owner == 'python' && 'ubuntu-24.04-aarch64' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
+        with:
+            repository: python/cpython
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
