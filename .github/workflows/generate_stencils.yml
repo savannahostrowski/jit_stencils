@@ -116,7 +116,7 @@ jobs:
 
       - name: Push commit
         run: |
-          git config --global use.name 'Savannah Ostrowski'
+          git config --global user.name 'Savannah Ostrowski'
           git config --global user.email 'savannahostrowski@users.noreply.github.com'
           git commit -am "Update stencils"
           git push
