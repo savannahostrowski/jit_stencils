@@ -77,8 +77,7 @@ jobs:
           export SDKROOT="$(xcrun --show-sdk-path)"
           ./configure --enable-experimental-jit
           make all --jobs 4
-          ls
-          mkdir ../stencils
+          stripped_target=$(echo ${{ matrix.target }} | cut -d'/' -f1)
           cp jit_stencils.h jit_stencils_${stripped_target}.h
 
       - name: Native Linux
@@ -89,8 +88,6 @@ jobs:
           export PATH="$(llvm-config-${{ matrix.llvm }} --bindir):$PATH"
           ./configure --enable-experimental-jit
           make all --jobs 4
-          ls
-          mkdir ../stencils
           stripped_target=$(echo ${{ matrix.target }} | cut -d'/' -f1)
           cp jit_stencils.h jit_stencils_${stripped_target}.h
     
@@ -118,5 +115,6 @@ jobs:
         run: |
           git config --global user.name 'Savannah Ostrowski'
           git config --global user.email 'savannahostrowski@users.noreply.github.com'
-          git commit -am "Update stencils"
+          git add .
+          git commit -m "Update stencils"
           git push
