@@ -67,7 +67,26 @@ jobs:
         with:
           python-version: '3.11'
 
-   
+      - name: Native Windows
+        if: runner.os == 'Windows' && matrix.architecture != 'ARM64'
+        run: |
+          choco install llvm --allow-downgrade --no-progress --version ${{ matrix.llvm }}.1.0
+          ./PCbuild/build.bat --experimental-jit ${{ matrix.debug && '-d' || '' }} -p ${{ matrix.architecture }}
+          ls
+          mkdir ..\stencils
+          cp jit_stencils.h ..\stencils\jit_stencils_${stripped_target}.h
+
+
+      # No tests (yet):
+      - name: Emulated Windows
+        if: runner.os == 'Windows' && matrix.architecture == 'ARM64'
+        run: |
+          choco install llvm --allow-downgrade --no-progress --version ${{ matrix.llvm }}.1.0
+          ./PCbuild/build.bat --experimental-jit ${{ matrix.debug && '-d' || '' }} -p ${{ matrix.architecture }}
+          ls
+          mkdir ..\stencils
+          cp jit_stencils.h ..\stencils\jit_stencils_${stripped_target}.h
+
 
         # The `find` line is required as a result of https://github.com/actions/runner-images/issues/9966.
         # This is a bug in the macOS runner image where the pre-installed Python is installed in the same
@@ -98,6 +117,7 @@ jobs:
           mkdir ../stencils
           stripped_target=$(echo ${{ matrix.target }} | cut -d'/' -f1)
           cp jit_stencils.h ../stencils/jit_stencils_${stripped_target}.h
+          
   aggregate-and-push:
     name: Aggregate and Push Stencils
     needs: jit
@@ -106,10 +126,14 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v4
 
+      - name: Create stencils directory if it doesn't exist
+        run: mkdir -p stencils
+
+      - name: List contents of stencils directory
+        run: ls -R stencils
+
       - name: Aggregate stencils
-        run: |
-          mkdir -p stencils
-          cp ../stencils/* ./stencils/
+        run: cp ../stencils/* ./stencils/
 
       - name: Commit and push stencils
         run: |
