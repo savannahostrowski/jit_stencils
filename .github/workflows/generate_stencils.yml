@@ -16,24 +16,8 @@ concurrency:
   cancel-in-progress: true
 
 jobs:
-  interpreter:
-    name: Interpreter (Debug)
-    runs-on: ubuntu-24.04
-    timeout-minutes: 90
-    steps:
-      - uses: actions/checkout@v4
-        with:
-            repository: python/cpython
-      - name: Build tier two interpreter
-        run: |
-          ./configure --enable-experimental-jit=interpreter --with-pydebug
-          make all --jobs 4
-      - name: Test tier two interpreter
-        run: |
-          ./python -m test --multiprocess 0 --timeout 4500 --verbose2 --verbose3
   jit:
     name: ${{ matrix.target }} (${{ matrix.debug && 'Debug' || 'Release' }})
-    needs: interpreter
     runs-on: ${{ matrix.runner }}
     timeout-minutes: 90
     strategy:
@@ -88,7 +72,8 @@ jobs:
         run: |
           choco install llvm --allow-downgrade --no-progress --version ${{ matrix.llvm }}.1.0
           ./PCbuild/build.bat --experimental-jit ${{ matrix.debug && '-d' || '' }} -p ${{ matrix.architecture }}
-          cp cpython/jit_stencils.h stencils/jit_stencils_${{ matrix.target }}.h
+          cd cpython
+          cp jit_stencils.h stencils/jit_stencils_${{ matrix.target }}.h
 
       # No tests (yet):
       - name: Emulated Windows
@@ -96,7 +81,8 @@ jobs:
         run: |
           choco install llvm --allow-downgrade --no-progress --version ${{ matrix.llvm }}.1.0
           ./PCbuild/build.bat --experimental-jit ${{ matrix.debug && '-d' || '' }} -p ${{ matrix.architecture }}
-          cp cpython/jit_stencils.h stencils/jit_stencils_${{ matrix.target }}.h
+          cd cpython
+          cp jit_stencils.h ../stencils/jit_stencils_${{ matrix.target }}.h
 
         # The `find` line is required as a result of https://github.com/actions/runner-images/issues/9966.
         # This is a bug in the macOS runner image where the pre-installed Python is installed in the same
@@ -111,7 +97,8 @@ jobs:
           export SDKROOT="$(xcrun --show-sdk-path)"
           ./configure --enable-experimental-jit ${{ matrix.debug && '--with-pydebug' || '' }}
           make all --jobs 4
-          cp cpython/jit_stencils.h stencils/jit_stencils_${{ matrix.target }}.h
+          cd cpython
+          cp jit_stencils.h ../stencils/jit_stencils_${{ matrix.target }}.h
 
       - name: Native Linux
         # Forks don't have access to our paid AArch64 runners. Skip those:
@@ -121,12 +108,13 @@ jobs:
           export PATH="$(llvm-config-${{ matrix.llvm }} --bindir):$PATH"
           ./configure --enable-experimental-jit ${{ matrix.debug && '--with-pydebug' || '' }}
           make all --jobs 4
-          cp cpython/jit_stencils.h stencils/jit_stencils_${{ matrix.target }}.h
+          cd cpython
+          cp jit_stencils.h ../stencils/jit_stencils_${{ matrix.target }}.h
       - name: Commit back to GitHub
         run: |
             git config --global user.name "github-actions[bot]"
             git config --global user.email "41898282+github-actions[bot]@users.noreply.github.com"
 
-            git add -A
+            git add stencils/jit_stencils_${{ matrix.target }}.h
             git commit -m "Updating generated stencils for ${{ matrix.target }}"
             git push
