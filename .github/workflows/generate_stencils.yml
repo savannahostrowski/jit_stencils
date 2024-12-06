@@ -67,24 +67,7 @@ jobs:
         with:
           python-version: '3.11'
 
-      - name: Native Windows
-        if: runner.os == 'Windows' && matrix.architecture != 'ARM64'
-        run: |
-          choco install llvm --allow-downgrade --no-progress --version ${{ matrix.llvm }}.1.0
-          ./PCbuild/build.bat --experimental-jit ${{ matrix.debug && '-d' || '' }} -p ${{ matrix.architecture }}
-          ls
-          mkdir ../stencils
-          cp jit_stencils.h ../stencils/jit_stencils_${stripped_target}.h
-
-      # No tests (yet):
-      - name: Emulated Windows
-        if: runner.os == 'Windows' && matrix.architecture == 'ARM64'
-        run: |
-          choco install llvm --allow-downgrade --no-progress --version ${{ matrix.llvm }}.1.0
-          ./PCbuild/build.bat --experimental-jit ${{ matrix.debug && '-d' || '' }} -p ${{ matrix.architecture }}
-          ls
-          mkdir ../stencils
-          cp jit_stencils.h ../stencils/jit_stencils_${stripped_target}.h
+   
 
         # The `find` line is required as a result of https://github.com/actions/runner-images/issues/9966.
         # This is a bug in the macOS runner image where the pre-installed Python is installed in the same
