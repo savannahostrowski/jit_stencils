@@ -74,7 +74,7 @@ jobs:
           ./PCbuild/build.bat --experimental-jit ${{ matrix.debug && '-d' || '' }} -p ${{ matrix.architecture }}
           ls
           mkdir ../stencils
-          cp jit_stencils.h ../stencils/jit_stencils_${{ matrix.target }}.h
+          cp jit_stencils.h ../stencils/jit_stencils_${stripped_target}.h
 
       # No tests (yet):
       - name: Emulated Windows
@@ -84,7 +84,7 @@ jobs:
           ./PCbuild/build.bat --experimental-jit ${{ matrix.debug && '-d' || '' }} -p ${{ matrix.architecture }}
           ls
           mkdir ../stencils
-          cp jit_stencils.h ../stencils/jit_stencils_${{ matrix.target }}.h
+          cp jit_stencils.h ../stencils/jit_stencils_${stripped_target}.h
 
         # The `find` line is required as a result of https://github.com/actions/runner-images/issues/9966.
         # This is a bug in the macOS runner image where the pre-installed Python is installed in the same
@@ -101,7 +101,7 @@ jobs:
           make all --jobs 4
           ls
           mkdir ../stencils
-          cp jit_stencils.h ../stencils/jit_stencils_${{ matrix.target }}.h
+          cp jit_stencils.h ../stencils/jit_stencils_${stripped_target}.h
 
       - name: Native Linux
         # Forks don't have access to our paid AArch64 runners. Skip those:
@@ -113,7 +113,8 @@ jobs:
           make all --jobs 4
           ls
           mkdir ../stencils
-          cp jit_stencils.h ../stencils/jit_stencils_${{ matrix.target }}.h
+          stripped_target=$(echo ${{ matrix.target }} | cut -d'/' -f1)
+          cp jit_stencils.h ../stencils/jit_stencils_${stripped_target}.h
   aggregate-and-push:
     name: Aggregate and Push Stencils
     needs: jit
