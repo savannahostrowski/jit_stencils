@@ -75,6 +75,7 @@ jobs:
           choco install llvm --allow-downgrade --no-progress --version ${{ matrix.llvm }}.1.0
           ./PCbuild/build.bat --experimental-jit -p ${{ matrix.architecture }}
           stripped_target=$(echo ${{ matrix.target }} | cut -d'/' -f1)
+          ls ./PCBuild/obj
           cp ./PCBuild/obj/314amd64_Release/jit_stencils.h jit_stencils_${stripped_target}.h
     
 
