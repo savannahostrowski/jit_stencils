@@ -58,8 +58,6 @@ jobs:
             runner: ubuntu-24.04
           - target: aarch64-unknown-linux-gnu/gcc
             architecture: aarch64
-            # Forks don't have access to our paid AArch64 runners. These jobs are skipped below:
-            runner: ${{ github.repository_owner == 'python' && 'ubuntu-24.04-aarch64' || 'ubuntu-24.04' }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -102,7 +100,6 @@ jobs:
           cp jit_stencils.h jit_stencils_${stripped_target}.h
 
       - name: Native Linux
-        # Forks don't have access to our paid AArch64 runners. Skip those:
         if: runner.os == 'Linux' && (matrix.architecture == 'x86_64')
         run: |
           sudo bash -c "$(wget -O - https://apt.llvm.org/llvm.sh)" ./llvm.sh ${{ matrix.llvm }}
