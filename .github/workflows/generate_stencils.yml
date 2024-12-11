@@ -73,7 +73,12 @@ jobs:
           choco install llvm --allow-downgrade --no-progress --version ${{ matrix.llvm }}.1.0
           ./PCbuild/build.bat --experimental-jit -p ${{ matrix.architecture }}
           stripped_target=$(echo ${{ matrix.target }} | cut -d'/' -f1)
-          find PCbuild -name "*jit_stencils.h" > jit_stencils_${stripped_target}.h
+          found_file=$(find PCbuild -name "*jit_stencils.h" | head -n 1)
+          if [ -n "$found_file" ]; then
+            cp $found_file jit_stencils_${stripped_target}.h
+          else
+            echo "No stencils found"
+          fi
 
       - name: Emulated Windows
         if: runner.os == 'Windows' && matrix.architecture == 'ARM64'
@@ -81,7 +86,12 @@ jobs:
           choco install llvm --allow-downgrade --no-progress --version ${{ matrix.llvm }}.1.0
           ./PCbuild/build.bat --experimental-jit -p ${{ matrix.architecture }}
           stripped_target=$(echo ${{ matrix.target }} | cut -d'/' -f1)
-          find PCbuild -name "*jit_stencils.h" > jit_stencils_${stripped_target}.h
+          found_file=$(find PCbuild -name "*jit_stencils.h" | head -n 1)
+          if [ -n "$found_file" ]; then
+            cp $found_file jit_stencils_${stripped_target}.h
+          else
+            echo "No stencils found"
+          fi
 
         # The `find` line is required as a result of https://github.com/actions/runner-images/issues/9966.
         # This is a bug in the macOS runner image where the pre-installed Python is installed in the same
