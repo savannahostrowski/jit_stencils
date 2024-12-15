@@ -7,6 +7,10 @@ on:
     branches:
         - main
   workflow_dispatch:
+    inputs:
+      commit_sha:
+        description: 'Commit SHA to build'
+        required: false
 
 permissions:
   contents: write
@@ -63,6 +67,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
             repository: python/cpython
+            ref: ${{ github.event.inputs.commit_sha || github.sha }}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -98,7 +103,7 @@ jobs:
           export SDKROOT="$(xcrun --show-sdk-path)"
           ./configure --enable-experimental-jit
           make all --jobs 4
-          stripped_target=$(echo ${{ matrix.target }} | cut -d'/' -f1)
+          stripped_target=$(echo ${{ matrix.target }} | cut -d'/' -f1)          
           cp jit_stencils.h jit_stencils_${stripped_target}.h
 
       - name: Native Linux
