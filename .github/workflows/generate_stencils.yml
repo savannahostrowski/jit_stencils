@@ -166,5 +166,5 @@ jobs:
       - name: Push commit
         run: |
           git add .
-          git commit -m "Update stencils"
+          git commit -m "Update stencils from python/cpython ${{ github.sha }}"
           git push
