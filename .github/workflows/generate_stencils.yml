@@ -9,8 +9,9 @@ on:
   workflow_dispatch:
     inputs:
       commit_sha:
-        description: 'Commit SHA to build'
-        required: false
+        type: string
+        description: 'The commit SHA to build from'
+        required: true
 
 permissions:
   contents: write
@@ -67,7 +68,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
             repository: python/cpython
-            ref: ${{ github.event.inputs.commit_sha || 'main'}}
+            ref: ${{ inputs.commit_sha || 'main'}}
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'

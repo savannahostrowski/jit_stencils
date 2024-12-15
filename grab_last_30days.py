@@ -39,8 +39,7 @@ for commit in commits:
     data = {
         "ref": "main",  # The branch to run the workflow on
         "inputs": {
-            "commit_sha": sha,
-            "commit_message": message
+            "commit_sha": sha
         }
     }
     response = requests.post(dispatch_url, json=data, headers=headers)
