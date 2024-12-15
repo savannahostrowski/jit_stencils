@@ -157,10 +157,14 @@ jobs:
         with:
           name: stencils
 
-      - name: Push commit
+      - name: Pull latest changes
         run: |
           git config --global user.name 'Savannah Ostrowski'
           git config --global user.email 'savannahostrowski@users.noreply.github.com'
+          git pull origin main
+
+      - name: Push commit
+        run: |
           git add .
           git commit -m "Update stencils"
           git push
